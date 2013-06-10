@@ -1,32 +1,32 @@
 package pingtest
 
 import (
-    "os/exec"
-    "fmt"
-    "strconv"
-    )
+	"fmt"
+	"os/exec"
+	"strconv"
+)
 
 type Pingtest struct {
-    count int
-    address string
+	count   int
+	address string
 }
 
-func MakeNewPingTest(address string, count int) *Pingtest {
-    ret := Pingtest{}
-    ret.address = address
-    ret.count = count
-    return &ret
+func NewPingTest(address string, count int) *Pingtest {
+	ret := Pingtest{}
+	ret.address = address
+	ret.count = count
+	return &ret
 }
 
 func (p *Pingtest) Run() (bool, error) {
-    cmd := exec.Command("/bin/ping", "-c", strconv.Itoa(p.count), p.address)
-    fmt.Println("path:", cmd.Path)
-    fmt.Println("args:", cmd.Args)
-    fmt.Println("dir:", cmd.Dir)
+	cmd := exec.Command("/bin/ping", "-c", strconv.Itoa(p.count), p.address)
+	fmt.Println("path:", cmd.Path)
+	fmt.Println("args:", cmd.Args)
+	fmt.Println("dir:", cmd.Dir)
 
-    err := cmd.Run()
-    if err == nil {
-        return true, nil
-    }
-    return false, err
+	err := cmd.Run()
+	if err == nil {
+		return true, nil
+	}
+	return false, err
 }
