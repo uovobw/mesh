@@ -8,6 +8,7 @@ import (
 	"flag"
 	"log"
 	"mesh/opinion"
+	"mesh/tests/pingtest"
 	"net/http"
 	"runtime"
 	"time"
@@ -22,6 +23,7 @@ const (
 )
 
 var commandChan = make(chan int, 10)
+var targetList []string
 var ticker = time.NewTicker(waitTime * time.Second).C
 var debug = flag.Bool("d", false, "Enable debug")
 var op = opinion.NewOpinion()
@@ -46,9 +48,26 @@ func runTest() (err error) {
 	return nil
 }
 
+func setup() (err error) {
+	// placeholder function to fetch data from
+	// configurator
+	targetList = append(targetList, "127.0.0.1")
+	targetList = append(targetList, "192.168.1.1")
+	return nil
+}
+
 func buildOpinion() {
 	log.Print("Building Opinion")
-	op.SetOpinionForHost("aHost", 0.234)
+	for _, target := range targetList {
+		log.Print(target)
+		t := pingtest.Pingtest{}
+		t.Setup(map[string]string{"address": target, "count": "2"})
+		result, err := t.Run()
+		if err != nil {
+			log.Print("test failed for target " + target)
+		}
+		op.SetOpinionForHost(target, result)
+	}
 }
 
 func main() {
@@ -62,6 +81,11 @@ func main() {
 	http.HandleFunc("/quit", quitHandler)
 	http.HandleFunc("/opinion", opinionHandler)
 	go http.ListenAndServe(":6060", nil)
+
+	// setup the local Agent
+	if setup() != nil {
+		panic("Error in setup function")
+	}
 
 	// build the first opinion
 	commandChan <- BUILD_OPINION
