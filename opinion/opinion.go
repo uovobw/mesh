@@ -28,9 +28,9 @@ func (o Opinion) GetOpinionForHost(host string) (hostOpinion float64, err error)
 func (o *Opinion) SetOpinionForHost(host string, hostOpinion float64) (err error) {
 	opinion, present := o.Map[host]
 	if present {
-		log.Print("Overwriting old opinion ", opinion, " for ", host, " with new one ", hostOpinion)
+		log.Print("Overwriting old opinion ", opinion, " for ", host, " with new one ", fmt.Sprintf("%f", hostOpinion))
 	} else {
-		log.Print("Creating opinion for ", host, " value ", hostOpinion)
+		log.Print("Creating opinion for ", host, " value ", fmt.Sprintf("%f", hostOpinion))
 	}
 	o.Map[host] = hostOpinion
 	return nil
@@ -44,7 +44,7 @@ func (o *Opinion) Print() (data string) {
 }
 
 func (o *Opinion) ToJson() []byte {
-	ret, err := json.Marshal(*o)
+	ret, err := json.Marshal((*o).Map)
 	if err != nil {
 		panic(err)
 	}

@@ -37,7 +37,7 @@ func opinionHandler(w http.ResponseWriter, r *http.Request) {
 	if *debug {
 		log.Print("Opinion request from ", r.RemoteAddr)
 	}
-	io.WriteString(w, op.Print())
+	w.Write(op.ToJson())
 }
 
 func refreshHandler(w http.ResponseWriter, r *http.Request) {
