@@ -1,6 +1,7 @@
 package opinion
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -37,7 +38,15 @@ func (o *Opinion) SetOpinionForHost(host string, hostOpinion float64) (err error
 
 func (o *Opinion) Print() (data string) {
 	for k, v := range o.Map {
-		data += "H:" + string(k) + " = " + fmt.Sprint("", v)
+		data += k + ":" + fmt.Sprintf("%f", v) + " "
 	}
-	return data
+	return
+}
+
+func (o *Opinion) ToJson() []byte {
+	ret, err := json.Marshal(*o)
+	if err != nil {
+		panic(err)
+	}
+	return ret
 }

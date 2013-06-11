@@ -16,15 +16,12 @@ import (
 
 // sleep between each tick
 const waitTime = 5
+const testRefreshTime = 30
 
-const (
-	BUILD_OPINION = iota
-	TICK
-)
-
-var commandChan = make(chan int, 10)
 var targetList []string
-var ticker = time.NewTicker(waitTime * time.Second).C
+var idleTicker = time.NewTicker(waitTime * time.Second)
+var refreshTicker = time.NewTicker(testRefreshTime * time.Second)
+var quit = make(chan int)
 var debug = flag.Bool("d", false, "Enable debug")
 var op = opinion.NewOpinion()
 
@@ -32,9 +29,8 @@ func quitHandler(w http.ResponseWriter, r *http.Request) {
 	if *debug {
 		log.Print("Got quit request")
 	}
-	io.WriteString(w, "quit")
-	// close the command chan to trigger exit in the main thread
-	close(commandChan)
+	io.WriteString(w, "quit\n")
+	doQuit()
 }
 
 func opinionHandler(w http.ResponseWriter, r *http.Request) {
@@ -42,6 +38,20 @@ func opinionHandler(w http.ResponseWriter, r *http.Request) {
 		log.Print("Opinion request from ", r.RemoteAddr)
 	}
 	io.WriteString(w, op.Print())
+}
+
+func refreshHandler(w http.ResponseWriter, r *http.Request) {
+	if *debug {
+		log.Print("Forced by ", r.RemoteAddr)
+	}
+	go buildOpinion()
+	io.WriteString(w, "refresh\n")
+}
+
+func doQuit() {
+	idleTicker.Stop()
+	refreshTicker.Stop()
+	quit <- 1
 }
 
 func runTest() (err error) {
@@ -80,6 +90,7 @@ func main() {
 	// create the http server and related routes
 	http.HandleFunc("/quit", quitHandler)
 	http.HandleFunc("/opinion", opinionHandler)
+	http.HandleFunc("/refresh", refreshHandler)
 	go http.ListenAndServe(":6060", nil)
 
 	// setup the local Agent
@@ -87,29 +98,21 @@ func main() {
 		panic("Error in setup function")
 	}
 
-	// build the first opinion
-	commandChan <- BUILD_OPINION
-
-	// add a tick each time the ticker ticks
-	go func() {
-		for {
-			<-ticker
-			commandChan <- TICK
-		}
-	}()
-
-	for cmd := range commandChan {
-		switch cmd {
-		case BUILD_OPINION:
-			if *debug {
-				log.Print("Build opinion received")
-			}
-			buildOpinion()
-		case TICK:
+	for {
+		select {
+		case <-idleTicker.C:
 			if *debug {
 				log.Print("Ticked")
 			}
+		case <-refreshTicker.C:
+			if *debug {
+				log.Print("Build opinion received")
+			}
+			go buildOpinion()
+		case <-quit:
+			log.Print("Quitting")
+			return
 		}
 	}
-	log.Print("Quitting")
+
 }
